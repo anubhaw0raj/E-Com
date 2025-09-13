@@ -1,28 +1,34 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 function Cart() {
-  // AUTH  here only 
-  // check kro localStorage me user object hai ya nhi
-  // const [userData] = useState(window.localStorage.getItem("user"));
-  // agar nhi hai -> to login page redirect krdo
-  
   const [cartItems, setCartItems] = useState([]);
+  const navigate = useNavigate();
 
-  // Fetch cart items when page loads
+  // Get logged in user
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  // If no user, redirect to login
   useEffect(() => {
-    fetch("http://localhost:5000/api/cart")
+    if (!user) {
+      alert("Login required to access cart");
+      navigate("/login");
+      return;
+    }
+
+    // Fetch cart items for this user
+    fetch(`http://localhost:5000/api/cart?userId=${user.id}`)
       .then((res) => res.json())
       .then((data) => setCartItems(data))
       .catch((err) => console.error("Error fetching cart:", err));
-  }, []);
+  }, [user]);
 
-  // Add or increase quantity
+  //  Add or increase quantity
   const handleAdd = (productId) => {
     fetch("http://localhost:5000/api/cart", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productId, quantity: 1 }),
+      body: JSON.stringify({ userId: user.id, productId, quantity: 1 }),
     })
       .then((res) => res.json())
       .then((data) => setCartItems(data));
@@ -34,12 +40,14 @@ function Cart() {
       fetch(`http://localhost:5000/api/cart/${productId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quantity: currentQty - 1 }),
+        body: JSON.stringify({ userId: user.id, quantity: currentQty - 1 }),
       })
         .then((res) => res.json())
         .then((data) => setCartItems(data));
     } else {
-      fetch(`http://localhost:5000/api/cart/${productId}`, { method: "DELETE" })
+      fetch(`http://localhost:5000/api/cart/${productId}?userId=${user.id}`, {
+        method: "DELETE",
+      })
         .then((res) => res.json())
         .then((data) => setCartItems(data));
     }

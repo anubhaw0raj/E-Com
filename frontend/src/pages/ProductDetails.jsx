@@ -1,13 +1,9 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 
 function ProductDetails() {
-  // AUTH  here only 
-  // check kro localStorage me user object hai ya nhi
-  // const [userData] = useState(window.localStorage.getItem("user"));
-  // agar nhi hai -> to login page redirect krdo
-  
   const { id } = useParams();
+  const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
 
@@ -30,13 +26,25 @@ function ProductDetails() {
     return <div className="text-white p-10">Loading product...</div>;
   }
 
-  // Add product to cart (via backend API)
+  // Add product to cart (with login check & userId)
   const handleAddToCart = async () => {
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    if (!user) {
+      alert("Login required to add items to cart");
+      navigate("/login");
+      return;
+    }
+
     try {
       const res = await fetch("http://localhost:5000/api/cart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId: product.id, quantity: 1 }),
+        body: JSON.stringify({
+          userId: user.id,       // send userId
+          productId: product.id, // send productId
+          quantity: 1,
+        }),
       });
 
       if (!res.ok) throw new Error("Failed to add to cart");
@@ -53,14 +61,11 @@ function ProductDetails() {
     <div className="bg-gray-900 text-white min-h-screen p-10 grid grid-cols-[40%_60%] gap-10">
       {/* Left Side - Images */}
       <div className="flex flex-col items-center">
-        {/* Main Image */}
         <img
           src={selectedImage}
           alt="Product"
           className="w-full h-[400px] object-contain rounded-lg mb-4"
         />
-
-        {/* Thumbnails */}
         <div className="flex space-x-4">
           {product.images.map((img, idx) => (
             <img
@@ -76,18 +81,20 @@ function ProductDetails() {
         </div>
       </div>
 
-      {/* Right Side - Product Details */}
+      {/* Right Side */}
       <div className="flex flex-col justify-centre">
         <div>
           <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
           <p className="text-yellow-400 mb-4">⭐ {product.rating} / 5</p>
 
-          {/* Specs Table */}
+          {/* Specs */}
           <table className="table-fixed text-left w-full mb-6">
             <tbody>
               {Object.entries(product.specs).map(([key, value], idx) => (
                 <tr key={idx}>
-                  <td className="w-1/3 font-semibold">{key.toLocaleUpperCase()} :-</td>
+                  <td className="w-1/3 font-semibold">
+                    {key.toLocaleUpperCase()} :-
+                  </td>
                   <td className="w-2/3">{value}</td>
                 </tr>
               ))}

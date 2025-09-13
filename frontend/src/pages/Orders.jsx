@@ -3,20 +3,28 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 function Orders() {
-  // AUTH  here only 
-  // check kro localStorage me user object hai ya nhi
-  // const [userData] = useState(window.localStorage.getItem("user"));
-  // agar nhi hai -> to login page redirect krdo
-  
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Get user from localStorage
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!user) {
+      alert("Please login to view your orders");
+      navigate("/login");
+    }
+  }, [user, navigate]);
+
   // Fetch orders from backend
   useEffect(() => {
     const fetchOrders = async () => {
+      if (!user) return;
+
       try {
-        const res = await fetch("http://localhost:5000/api/checkout");
+        const res = await fetch(`http://localhost:5000/api/checkout?userId=${user.id}`);
         const data = await res.json();
         setOrders(data);
       } catch (err) {
@@ -26,14 +34,20 @@ function Orders() {
       }
     };
     fetchOrders();
-  }, []);
+  }, [user]);
 
   // Cancel order
   const handleCancel = async (orderId) => {
+    if (!user) {
+      alert("Please login to cancel orders");
+      navigate("/login");
+      return;
+    }
+
     if (!window.confirm("Are you sure you want to cancel this order?")) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/checkout/${orderId}`, {
+      const res = await fetch(`http://localhost:5000/api/checkout/${orderId}?userId=${user.id}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to cancel order");

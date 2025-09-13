@@ -1,22 +1,35 @@
 const products = require("../data/products");
 
-// In-memory cart (later replace with DB)
-// This will change to a dictionary -> {userId: [cartItems]}
-let cart = [];
+// In-memory carts -> { userId: [cartItems] }
+let carts = {};
 
-// Get all cart items
+// Helper to get cart for user
+const getUserCart = (userId) => {
+  if (!carts[userId]) carts[userId] = [];
+  return carts[userId];
+};
+
+// Get all cart items for a user
 const getCart = (req, res) => {
+  const { userId } = req.query; // client must send ?userId=...
+  if (!userId) return res.status(400).json({ message: "User ID required" });
+
+  const cart = getUserCart(userId);
   res.json(cart);
 };
 
 // Add product to cart
 const addToCart = (req, res) => {
-  const { productId, quantity } = req.body;
+  const { userId, productId, quantity } = req.body;
 
-  const product = products.find(p => p.id === productId);
+  if (!userId) return res.status(400).json({ message: "User ID required" });
+
+  const product = products.find((p) => p.id === productId);
   if (!product) return res.status(404).json({ message: "Product not found" });
 
-  const existingItem = cart.find(item => item.id === productId);
+  const cart = getUserCart(userId);
+
+  const existingItem = cart.find((item) => item.id === productId);
   if (existingItem) {
     existingItem.quantity += quantity || 1;
   } else {
@@ -26,28 +39,38 @@ const addToCart = (req, res) => {
   res.json(cart);
 };
 
-// Update quantity
+//  Decrease Update quantity
 const updateCartItem = (req, res) => {
+  const { userId, quantity } = req.body;
   const itemId = parseInt(req.params.id);
-  const { quantity } = req.body;
 
-  const item = cart.find(item => item.id === itemId);
+  if (!userId) return res.status(400).json({ message: "User ID required" });
+
+  const cart = getUserCart(userId);
+  const item = cart.find((i) => i.id === itemId);
+
   if (!item) return res.status(404).json({ message: "Cart item not found" });
 
   if (quantity <= 0) {
-    cart = cart.filter(i => i.id !== itemId);
+    carts[userId] = cart.filter((i) => i.id !== itemId);
   } else {
     item.quantity = quantity;
   }
 
-  res.json(cart);
+  res.json(carts[userId]);
 };
 
 // Remove product
 const removeFromCart = (req, res) => {
+  const { userId } = req.query;   // get userId from query
   const itemId = parseInt(req.params.id);
-  cart = cart.filter(item => item.id !== itemId);
-  res.json(cart);
+
+  if (!userId) return res.status(400).json({ message: "User ID required" });
+
+  const cart = getUserCart(userId);
+  carts[userId] = cart.filter((i) => i.id !== itemId);
+
+  res.json(carts[userId]);
 };
 
 module.exports = { getCart, addToCart, updateCartItem, removeFromCart };

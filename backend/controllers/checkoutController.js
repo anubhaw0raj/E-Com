@@ -1,11 +1,21 @@
 // controllers/checkoutController.js
-// this will be changed to a dictionary {userId: [orders]}
-let orders = []; // in-memory orders for now
+// Dictionary to store user-specific orders
+let orders = {}; // {userId: [orders]}
 let orderIdCounter = 1;
+
+// Helper to get orders for user
+const getUserOrders = (userId) => {
+  if (!orders[userId]) orders[userId] = [];
+  return orders[userId];
+};
 
 // Confirm checkout and create new order
 const checkout = (req, res) => {
-  const { cartItems, address, paymentMethod } = req.body;
+  const { userId, cartItems, address, paymentMethod } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ message: "User ID required" });
+  }
 
   if (!cartItems || cartItems.length === 0) {
     return res.status(400).json({ message: "Cart is empty" });
@@ -13,6 +23,7 @@ const checkout = (req, res) => {
 
   const newOrder = {
     id: orderIdCounter++,
+    userId,
     items: cartItems,
     address: address || "Default Address",
     paymentMethod: paymentMethod || "COD",
@@ -20,7 +31,7 @@ const checkout = (req, res) => {
     date: new Date().toISOString(),
   };
 
-  orders.push(newOrder);
+  getUserOrders(userId).push(newOrder);
 
   return res.status(201).json({
     message: "Order placed successfully",
@@ -31,21 +42,33 @@ const checkout = (req, res) => {
 
 // Cancel order
 const cancelOrder = (req, res) => {
+  const { userId } = req.query;
   const orderId = parseInt(req.params.id);
-  const index = orders.findIndex((o) => o.id === orderId);
+
+  if (!userId) {
+    return res.status(400).json({ message: "User ID required" });
+  }
+
+  const userOrders = getUserOrders(userId);
+  const index = userOrders.findIndex((o) => o.id === orderId);
 
   if (index === -1) {
     return res.status(404).json({ message: "Order not found" });
   }
 
-  orders.splice(index, 1);
+  userOrders.splice(index, 1);
   res.json({ message: "Order cancelled successfully", orderId });
 };
 
-
-// Get all orders
+// Get all orders for a user
 const getOrders = (req, res) => {
-  res.json(orders);
+  const { userId } = req.query;
+
+  if (!userId) {
+    return res.status(400).json({ message: "User ID required" });
+  }
+
+  res.json(getUserOrders(userId));
 };
 
 module.exports = { checkout, getOrders, cancelOrder };

@@ -2,16 +2,22 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 function Checkout() {
-  // AUTH  here only 
-  // check kro localStorage me user object hai ya nhi
-  // const [userData] = useState(window.localStorage.getItem("user"));
-  // agar nhi hai -> to login page redirect krdo
-  
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedAddress, setSelectedAddress] = useState("Home");
   const [paymentMethod, setPaymentMethod] = useState("cod");
+
+  // Get user from localStorage
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!user) {
+      alert("Please login to proceed with checkout");
+      navigate("/login");
+    }
+  }, [user, navigate]);
 
   // In the future: fetch addresses from user profile API
   const availableAddresses = [
@@ -35,8 +41,10 @@ function Checkout() {
   // Fetch cart items from backend
   useEffect(() => {
     const fetchCart = async () => {
+      if (!user) return;
+
       try {
-        const res = await fetch("http://localhost:5000/api/cart");
+        const res = await fetch(`http://localhost:5000/api/cart?userId=${user.id}`);
         const data = await res.json();
         setCartItems(data);
       } catch (err) {
@@ -46,7 +54,7 @@ function Checkout() {
       }
     };
     fetchCart();
-  }, []);
+  }, [user]);
 
   // Calculate totals
   const subtotal = cartItems.reduce(
@@ -59,13 +67,24 @@ function Checkout() {
 
   // Place order using checkout API
   const handlePlaceOrder = async () => {
+    if (!user) {
+      alert("Please login to place an order");
+      navigate("/login");
+      return;
+    }
+
     try {
+      const selectedAddressValue = availableAddresses.find(
+        addr => addr.label === selectedAddress
+      )?.value || "Default Address";
+
       const res = await fetch("http://localhost:5000/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          userId: user.id,
           cartItems,
-          address: selectedAddress,
+          address: selectedAddressValue,
           paymentMethod,
         }),
       });

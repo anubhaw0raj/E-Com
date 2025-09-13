@@ -4,6 +4,7 @@ const cors = require("cors");
 const productRoutes = require("./routes/productRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const checkoutRoutes = require("./routes/checkoutRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 const PORT = 5000;
@@ -18,7 +19,8 @@ app.get("/", (req, res) =>{
 
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
-app.use("/api/checkout", checkoutRoutes); 
+app.use("/api/checkout", checkoutRoutes);
+app.use("/api/auth", authRoutes); 
 
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
