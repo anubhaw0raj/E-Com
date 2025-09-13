@@ -22,9 +22,8 @@
 
 // controllers/authController.js
 const bcrypt = require("bcryptjs");
-
-let users = []; // in-memory users list
-let userIdCounter = 1;
+const { pool } = require("../config/database");
+let userIdCounter = 1; // Simple counter for user IDs
 
 // Register new user
 const register = async (req, res) => {
@@ -34,52 +33,80 @@ const register = async (req, res) => {
     return res.status(400).json({ message: "All fields are required" });
   }
 
-  // Check if email already exists
-  const existingEmail = users.find((u) => u.email === email);
-  if (existingEmail) {
-    return res.status(400).json({ message: "Email already registered" });
+  try {
+    // Check if email already exists
+    const emailCheck = await pool.query(
+      "SELECT id FROM users WHERE email = $1",
+      [email]
+    );
+    if (emailCheck.rows.length > 0) {
+      return res.status(400).json({ message: "Email already registered" });
+    }
+
+    // Check if username already exists
+    const usernameCheck = await pool.query(
+      "SELECT id FROM users WHERE username = $1",
+      [username]
+    );
+    if (usernameCheck.rows.length > 0) {
+      return res.status(400).json({ message: "Username already taken" });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert new user into database
+    const result = await pool.query(
+      "INSERT INTO users (id, email, username, password, created_at) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, username",
+      [userIdCounter, email, username, hashedPassword, new Date()]
+    );
+
+    userIdCounter++; // Increment user ID counter for next user
+
+    return res.status(201).json({ 
+      message: "User registered successfully",
+      user: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error("Registration error:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
-
-  // Check if username already exists
-  const existingUsername = users.find((u) => u.username === username);
-  if (existingUsername) {
-    return res.status(400).json({ message: "Username already taken" });
-  }
-
-  // Hash password
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  const newUser = {
-    id: userIdCounter++,
-    email,
-    username,
-    password: hashedPassword,
-  };
-
-  users.push(newUser);
-
-  return res.status(201).json({ message: "User registered successfully" });
 };
 
 // Login user (by username + password)
 const login = async (req, res) => {
   const { username, password } = req.body;
 
-  const user = users.find((u) => u.username === username);
-  if (!user) {
-    return res.status(400).json({ message: "Invalid credentials" });
-  }
+  try {
+    // Find user by username
+    const result = await pool.query(
+      "SELECT id, email, username, password FROM users WHERE username = $1",
+      [username]
+    );
 
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) {
-    return res.status(400).json({ message: "Invalid credentials" });
-  }
+    if (result.rows.length === 0) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
-  // return user info (id, username, email)
-  return res.json({
-    message: "Login successful",
-    user: { id: user.id, email: user.email, username: user.username },
-  });
+    const user = result.rows[0];
+
+    // Compare password
+    const isMatch = await bcrypt.compare(password, user.password_hash);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    // return user info (id, username, email)
+    return res.json({
+      message: "Login successful",
+      user: { id: user.id, email: user.email, username: user.username },
+    });
+
+  } catch (error) {
+    console.error("Login error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 };
 
 // Logout user (frontend will handle clearing localStorage)
@@ -87,8 +114,16 @@ const logout = (req, res) => {
   return res.json({ message: "Logout successful" });
 };
 
-const getAllUsers = (req, res) => {
-  res.json(users);
+const getAllUsers = async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT id, email, username, created_at FROM users ORDER BY created_at DESC"
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Get all users error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 };
 
 module.exports = { register, login, logout, getAllUsers };
