@@ -3,6 +3,12 @@ import { useState, useEffect } from "react";
 import Setup_Pc from "../assets/Img/Gaming.jpg";
 
 function Home() {
+
+  // AUTH  here only 
+  // check kro localStorage me user object hai ya nhi
+  // const [userData] = useState(window.localStorage.getItem("user"));
+  // agar nhi hai -> to login page redirect krdo
+
   const [showInfo, setShowInfo] = useState(false);
   const [products, setProducts] = useState([]);
   const navigate = useNavigate();

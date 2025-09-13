@@ -2,6 +2,11 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 function Checkout() {
+  // AUTH  here only 
+  // check kro localStorage me user object hai ya nhi
+  // const [userData] = useState(window.localStorage.getItem("user"));
+  // agar nhi hai -> to login page redirect krdo
+  
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);

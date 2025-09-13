@@ -41,7 +41,7 @@ Backlight → RGB
 3. users table → later for login/register
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
-  name VARCHAR(100),
+  username VARCHAR(100),
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash TEXT NOT NULL
 );

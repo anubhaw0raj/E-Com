@@ -2,6 +2,11 @@ import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 
 function ProductDetails() {
+  // AUTH  here only 
+  // check kro localStorage me user object hai ya nhi
+  // const [userData] = useState(window.localStorage.getItem("user"));
+  // agar nhi hai -> to login page redirect krdo
+  
   const { id } = useParams();
   const [product, setProduct] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);

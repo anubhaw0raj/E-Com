@@ -3,6 +3,11 @@ import { Link,useSearchParams} from "react-router-dom";
 
 
 function Products() {
+  // AUTH  here only 
+  // check kro localStorage me user object hai ya nhi
+  // const [userData] = useState(window.localStorage.getItem("user"));
+  // agar nhi hai -> to login page redirect krdo
+  
   const [searchParams] = useSearchParams();
   const category = searchParams.get("category") || "All";
   const [products, setProducts] = useState([]);

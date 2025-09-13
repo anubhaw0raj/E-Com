@@ -3,6 +3,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 function Orders() {
+  // AUTH  here only 
+  // check kro localStorage me user object hai ya nhi
+  // const [userData] = useState(window.localStorage.getItem("user"));
+  // agar nhi hai -> to login page redirect krdo
+  
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();

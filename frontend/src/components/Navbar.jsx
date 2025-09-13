@@ -3,6 +3,13 @@ import { Link } from "react-router-dom";
 import Setup_Pc1 from "../assets/Img/Gaming1.jpg";
 
 function Navbar() {
+
+  // AUTH  here only 
+  // check kro localStorage me user object hai ya nhi
+  // const [userData] = useState(window.localStorage.getItem("user"));
+
+  // logout funvtion -> localStorage se user hata do aur login page pe redirect krdo
+
   return (
     
     <nav
@@ -43,6 +50,8 @@ function Navbar() {
         </div>
 
         {/* Cart / Login */}
+        {/* agar user Data hai to in dono ke jagah profile aur logout dikha do -> logout me logic me localStorage se user hata do autr login me redirect krdo */}
+        {/* user data nhi hai to register and login dikhao */}
         <div className="flex space-x-4">
           <Link to="/profile" className="hover:text-cyan-400 transition">
             Profile
