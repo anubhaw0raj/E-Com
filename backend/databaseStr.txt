@@ -1,0 +1,64 @@
+🔹 Database Design (PostgreSQL)
+1. products table → general product info
+CREATE TABLE products (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  category VARCHAR(50) NOT NULL, -- monitor, keyboard, mouse, etc.
+  price DECIMAL(10,2) NOT NULL,
+  description TEXT,
+  rating DECIMAL(2,1), -- avg rating
+  images TEXT[] -- array of image URLs
+);
+
+2. product_specs table → flexible specs per product
+
+Since specs differ by category, we’ll store them as key → value pairs.
+
+CREATE TABLE product_specs (
+  id SERIAL PRIMARY KEY,
+  product_id INT REFERENCES products(id) ON DELETE CASCADE,
+  spec_name VARCHAR(100), -- e.g., "Brand", "Screen Size", "Resolution"
+  spec_value TEXT
+);
+
+
+👉 Example for a monitor (product_id = 1):
+
+Brand → Amazon Basics  
+Screen Size → 27 Inches  
+Resolution → FHD 1080p  
+Aspect Ratio → 16:9  
+Surface → Glossy
+
+
+For a keyboard (product_id = 2):
+
+Brand → Corsair  
+Type → Mechanical  
+Switch → Cherry MX Blue  
+Backlight → RGB
+
+3. users table → later for login/register
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL
+);
+
+4. cart table → stores cart items per user
+CREATE TABLE cart (
+  id SERIAL PRIMARY KEY,
+  user_id INT REFERENCES users(id) ON DELETE CASCADE,
+  product_id INT REFERENCES products(id) ON DELETE CASCADE,
+  quantity INT DEFAULT 1
+);
+
+5. orders table → later for checkout
+CREATE TABLE orders (
+  id SERIAL PRIMARY KEY,
+  user_id INT REFERENCES users(id) ON DELETE CASCADE,
+  total_price DECIMAL(10,2),
+  status VARCHAR(50) DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
