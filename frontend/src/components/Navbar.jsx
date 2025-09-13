@@ -4,40 +4,11 @@ import { Link, useNavigate } from "react-router-dom";
 import Setup_Pc1 from "../assets/Img/Gaming1.jpg";
 
 function Navbar() {
-  const [user, setUser] = useState(null);
   const navigate = useNavigate();
-
-  // check localStorage and update state
-  const readUser = () => {
-    const storedUser = localStorage.getItem("user");
-    setUser(storedUser ? JSON.parse(storedUser) : null);
-  };
-
-  useEffect(() => {
-    readUser(); // initial read
-
-    // when other tab changes localStorage
-    const onStorage = (e) => {
-      if (e.key === "user") readUser();
-    };
-
-    // custom event for same-tab updates
-    const onUserChanged = () => readUser();
-
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("userChanged", onUserChanged);
-
-    return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("userChanged", onUserChanged);
-    };
-  }, []);
+  const user = JSON.parse(localStorage.getItem("user"));
 
   const handleLogout = () => {
     localStorage.removeItem("user");
-    // notify other listeners (same tab)
-    window.dispatchEvent(new Event("userChanged"));
-    setUser(null);
     navigate("/login");
   };
 

@@ -16,10 +16,7 @@ function Orders() {
       alert("Please login to view your orders");
       navigate("/login");
     }
-  }, [user, navigate]);
 
-  // Fetch orders from backend
-  useEffect(() => {
     const fetchOrders = async () => {
       if (!user) return;
 
@@ -33,8 +30,9 @@ function Orders() {
         setLoading(false);
       }
     };
+
     fetchOrders();
-  }, [user]);
+  }, []);
 
   // Cancel order
   const handleCancel = async (orderId) => {

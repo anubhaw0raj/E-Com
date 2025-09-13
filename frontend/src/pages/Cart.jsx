@@ -21,7 +21,7 @@ function Cart() {
       .then((res) => res.json())
       .then((data) => setCartItems(data))
       .catch((err) => console.error("Error fetching cart:", err));
-  }, [user]);
+  }, []);
 
   //  Add or increase quantity
   const handleAdd = (productId) => {

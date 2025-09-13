@@ -28,11 +28,8 @@ function Login() {
       // Save user to localStorage
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      // notify same-tab listeners
-      window.dispatchEvent(new Event("userChanged"));
-
       alert("Login successful!");
-      navigate("/"); // redirect to Home
+      navigate("/");
     } catch (err) {
       setError("Something went wrong. Try again later.");
     }
