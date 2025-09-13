@@ -1,6 +1,7 @@
 const products = require("../data/products");
 
 // In-memory cart (later replace with DB)
+// This will change to a dictionary -> {userId: [cartItems]}
 let cart = [];
 
 // Get all cart items

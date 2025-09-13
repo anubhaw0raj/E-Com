@@ -1,4 +1,5 @@
 // controllers/checkoutController.js
+// this will be changed to a dictionary {userId: [orders]}
 let orders = []; // in-memory orders for now
 let orderIdCounter = 1;
 
