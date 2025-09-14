@@ -17,7 +17,7 @@ function Checkout() {
       alert("Please login to proceed with checkout");
       navigate("/login");
     }
-  }, [user, navigate]);
+  }, []);
 
   // In the future: fetch addresses from user profile API
   const availableAddresses = [
@@ -54,7 +54,7 @@ function Checkout() {
       }
     };
     fetchCart();
-  }, [user]);
+  }, []);
 
   // Calculate totals
   const subtotal = cartItems.reduce(
@@ -83,7 +83,6 @@ function Checkout() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: user.id,
-          cartItems,
           address: selectedAddressValue,
           paymentMethod,
         }),

@@ -1,4 +1,22 @@
-const products = [
+// Product interface definitions
+export interface ProductSpecs {
+  brand: string;
+  [key: string]: string | number;
+}
+
+export interface Product {
+  id: number;
+  name: string;
+  category: string;
+  price: number;
+  rating: number;
+  description: string;
+  images: string[];
+  about: string[];
+  specs: ProductSpecs;
+}
+
+const products: Product[] = [
   {
     id: 1,
     name: "Amazon Basics 27 inch Monitor",
@@ -161,4 +179,4 @@ const products = [
   }
 ];
 
-module.exports = products;
+export default products;

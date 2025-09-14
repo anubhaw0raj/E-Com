@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model users {
+  id         Int      @id @default(autoincrement())
+  email      String   @unique @db.VarChar(50)
+  username   String   @unique @db.VarChar(50)
+  password   String   @db.VarChar(100)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @updatedAt @db.Timestamp(6)
+
+  // Relationships
+  cart       Cart?
+  orders     Order[]
+
+  @@map("users")
+}
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique @db.VarChar(100)
+  description String?   @db.Text
+  created_at  DateTime  @default(now()) @db.Timestamp(6)
+  updated_at  DateTime  @updatedAt @db.Timestamp(6)
+
+  // Relationships
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(255)
+  description String   @db.Text
+  price       Decimal  @db.Decimal(10, 2)
+  rating      Decimal  @default(0) @db.Decimal(3, 2)
+  images      String[] @db.Text
+  about       String[] @db.Text
+  specs       Json
+  stock       Int      @default(0)
+  category_id Int
+  created_at  DateTime @default(now()) @db.Timestamp(6)
+  updated_at  DateTime @updatedAt @db.Timestamp(6)
+
+  // Relationships
+  category   Category    @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@map("products")
+}
+
+model Cart {
+  id         Int      @id @default(autoincrement())
+  user_id    Int      @unique
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @updatedAt @db.Timestamp(6)
+
+  // Relationships
+  user  users      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id         Int      @id @default(autoincrement())
+  cart_id    Int
+  product_id Int
+  quantity   Int      @default(1)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @updatedAt @db.Timestamp(6)
+
+  // Relationships
+  cart    Cart    @relation(fields: [cart_id], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@unique([cart_id, product_id])
+  @@map("cart_items")
+}
+
+model Order {
+  id             Int         @id @default(autoincrement())
+  user_id        Int
+  total_amount   Decimal     @db.Decimal(10, 2)
+  status         OrderStatus @default(PENDING)
+  shipping_address Json
+  payment_method String?     @db.VarChar(50)
+  payment_status PaymentStatus @default(PENDING)
+  created_at     DateTime    @default(now()) @db.Timestamp(6)
+  updated_at     DateTime    @updatedAt @db.Timestamp(6)
+
+  // Relationships
+  user  users       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  items OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id         Int     @id @default(autoincrement())
+  order_id   Int
+  product_id Int
+  quantity   Int
+  price      Decimal @db.Decimal(10, 2) // Price at time of order
+  created_at DateTime @default(now()) @db.Timestamp(6)
+
+  // Relationships
+  order   Order   @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+// Enums
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
