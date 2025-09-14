@@ -11,6 +11,7 @@ function Home() {
 
   const [showInfo, setShowInfo] = useState(false);
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const navigate = useNavigate();
 
   // Fetch all products from backend
@@ -19,9 +20,12 @@ function Home() {
       .then((res) => res.json())
       .then((data) => setProducts(data))
       .catch((err) => console.error("Error fetching products:", err));
-  }, []);
 
-  const categories = ["Monitor", "Keyboard", "Mouse", "CPU", "Headset", "Laptop"];
+    fetch("http://localhost:5000/api/products/categories")
+      .then((res) => res.json())
+      .then((data) => setCategories(data))
+      .catch((err) => console.error("Error fetching categories:", err));
+  }, []);
 
   return (
     <div className="bg-black text-white min-h-screen">
@@ -64,15 +68,15 @@ function Home() {
           {categories.map((cat, i) => (
             <div
               key={i}
-              onClick={() => navigate(`/products?category=${cat}`)}
+              onClick={() => navigate(`/products?category=${cat?.name?.toLowerCase()}`)}
               className="bg-gray-800 p-6 rounded-xl flex flex-col items-center hover:scale-105 transition cursor-pointer"
             >
               <img
                 src="https://via.placeholder.com/120"
-                alt={cat}
+                alt={cat?.description}
                 className="rounded-lg mb-3"
               />
-              <p className="font-semibold text-gray-200">{cat}</p>
+              <p className="font-semibold text-gray-200">{cat?.name}</p>
             </div>
           ))}
         </div>

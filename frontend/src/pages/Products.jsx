@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { Link,useSearchParams} from "react-router-dom";
 
 
@@ -11,7 +11,17 @@ function Products() {
   const [searchParams] = useSearchParams();
   const category = searchParams.get("category") || "All";
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(category);
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/products/categories")
+      .then((res) => res.json())
+      .then((data) => {
+        setCategories(...data, { id: 0, name: "All", description: "All Products" });
+      })
+      .catch((err) => console.error("Error fetching categories:", err));
+  }, []);
 
   useEffect(() => {
     fetch(`http://localhost:5000/api/products?category=${selectedCategory}`)
@@ -19,9 +29,6 @@ function Products() {
       .then((data) => setProducts(data))
       .catch((err) => console.error("Error fetching products:", err));
   }, [selectedCategory]);
-
-  const categories = ["All", "Monitor", "Keyboard", "Mouse", "CPU", "Headset", "Laptop"];
-
 
   return (
     <div className="bg-gray-900 text-white min-h-screen grid grid-cols-[20%_80%]">
@@ -36,8 +43,8 @@ function Products() {
           onChange={(e) => setSelectedCategory(e.target.value)}
         >
           {categories.map((cat, i) => (
-            <option key={i} value={cat}>
-              {cat}
+            <option key={i} value={cat?.name}>
+              {cat?.name}
             </option>
           ))}
         </select>
@@ -48,13 +55,13 @@ function Products() {
             <li
               key={i}
               className={`cursor-pointer p-2 rounded-lg ${
-                selectedCategory === cat
+                selectedCategory === cat?.name
                   ? "bg-cyan-500 text-black font-bold"
                   : "hover:bg-gray-700"
               }`}
-              onClick={() => setSelectedCategory(cat)}
+              onClick={() => setSelectedCategory(cat?.name)}
             >
-              {cat}
+              {cat?.name}
             </li>
           ))}
         </ul>
