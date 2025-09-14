@@ -1,15 +1,28 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { cartApi, ordersApi } from "../models/api";
+import { CartItem, User } from "../models";
 
-function Checkout() {
+interface AddressOption {
+  label: string;
+  value: string;
+}
+
+interface PaymentMethod {
+  label: string;
+  value: string;
+}
+
+const Checkout: React.FC = () => {
   const navigate = useNavigate();
-  const [cartItems, setCartItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedAddress, setSelectedAddress] = useState("Home");
-  const [paymentMethod, setPaymentMethod] = useState("cod");
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [selectedAddress, setSelectedAddress] = useState<string>("Home");
+  const [paymentMethod, setPaymentMethod] = useState<string>("cod");
 
   // Get user from localStorage
-  const user = JSON.parse(localStorage.getItem("user"));
+  const userString = localStorage.getItem("user");
+  const user: User | null = userString ? JSON.parse(userString) : null;
 
   // Redirect if not logged in
   useEffect(() => {
@@ -17,17 +30,17 @@ function Checkout() {
       alert("Please login to proceed with checkout");
       navigate("/login");
     }
-  }, []);
+  }, [user, navigate]);
 
   // In the future: fetch addresses from user profile API
-  const availableAddresses = [
+  const availableAddresses: AddressOption[] = [
     { label: "Home", value: "221B Baker Street, Near City Library, London" },
     { label: "Work", value: "14 Tech Park Avenue, 5th Floor, Downtown Business Hub" },
     { label: "Ad1", value: "77 Maple Heights, Opposite Greenfield Mall, Springfield" },
   ];
 
   // Payment methods array
-  const paymentMethods = [
+  const paymentMethods: PaymentMethod[] = [
     { label: "Credit / Debit Card", value: "Credit/Debit Card" },
     { label: "UPI (Google Pay, PhonePe, Paytm)", value: "UPI" },
     { label: "Cash on Delivery", value: "Cash On Delivery" },
@@ -44,8 +57,7 @@ function Checkout() {
       if (!user) return;
 
       try {
-        const res = await fetch(`http://localhost:5000/api/cart?userId=${user.id}`);
-        const data = await res.json();
+        const data = await cartApi.getCart({ userId: user.id.toString() });
         setCartItems(data);
       } catch (err) {
         console.error("Error fetching cart:", err);
@@ -54,7 +66,7 @@ function Checkout() {
       }
     };
     fetchCart();
-  }, []);
+  }, [user]);
 
   // Calculate totals
   const subtotal = cartItems.reduce(
@@ -78,21 +90,14 @@ function Checkout() {
         addr => addr.label === selectedAddress
       )?.value || "Default Address";
 
-      const res = await fetch("http://localhost:5000/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user.id,
-          address: selectedAddressValue,
-          paymentMethod,
-        }),
+      const response = await ordersApi.checkout({
+        userId: user.id.toString(),
+        address: selectedAddressValue,
+        paymentMethod,
       });
 
-      if (!res.ok) throw new Error("Failed to place order");
-      const data = await res.json();
-
       alert("Order placed successfully!");
-      console.log("Order Response:", data);
+      console.log("Order Response:", response);
 
       // Redirect to Orders page
       navigate("/orders");
@@ -183,6 +188,6 @@ function Checkout() {
       </div>
     </div>
   );
-}
+};
 
 export default Checkout;

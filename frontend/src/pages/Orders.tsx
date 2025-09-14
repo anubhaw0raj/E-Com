@@ -1,28 +1,28 @@
-// src/pages/Orders.jsx
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ordersApi } from "../models/api";
+import { Order, User } from "../models";
 
-function Orders() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+const Orders: React.FC = () => {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const navigate = useNavigate();
 
   // Get user from localStorage
-  const user = JSON.parse(localStorage.getItem("user"));
+  const userString = localStorage.getItem("user");
+  const user: User | null = userString ? JSON.parse(userString) : null;
 
   // Redirect if not logged in
   useEffect(() => {
     if (!user) {
       alert("Please login to view your orders");
       navigate("/login");
+      return;
     }
 
     const fetchOrders = async () => {
-      if (!user) return;
-
       try {
-        const res = await fetch(`http://localhost:5000/api/checkout?userId=${user.id}`);
-        const data = await res.json();
+        const data = await ordersApi.getOrders({ userId: user.id.toString() });
         setOrders(data);
       } catch (err) {
         console.error("Error fetching orders:", err);
@@ -32,10 +32,10 @@ function Orders() {
     };
 
     fetchOrders();
-  }, []);
+  }, [user, navigate]);
 
   // Cancel order
-  const handleCancel = async (orderId) => {
+  const handleCancel = async (orderId: number) => {
     if (!user) {
       alert("Please login to cancel orders");
       navigate("/login");
@@ -45,12 +45,8 @@ function Orders() {
     if (!window.confirm("Are you sure you want to cancel this order?")) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/checkout/${orderId}?userId=${user.id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Failed to cancel order");
-      const data = await res.json();
-      alert(data.message);
+      const response = await ordersApi.cancelOrder(orderId, user.id.toString());
+      alert(response.message);
 
       // Remove from state
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
@@ -96,17 +92,17 @@ function Orders() {
                   <div
                     key={item.id}
                     className="flex items-center bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600 transition"
-                    onClick={() => navigate(`/product/${item.id}`)}
+                    onClick={() => navigate(`/product/${item.productId}`)}
                   >
                     <img
-                      src={item.images[0]}
-                      alt= "Thumbnail"
+                      src={item.images?.[0] || "/placeholder.jpg"}
+                      alt="Thumbnail"
                       className="w-20 h-20 object-cover rounded-lg mr-4"
                     />
                     <div className="flex-1">
                       <h3 className="font-semibold">{item.name}</h3>
                       <p className="text-gray-300">
-                        Price: ${item.price} | Rating: ⭐ {item.rating}
+                        Price: ${item.price} | Total: ${item.total.toFixed(2)}
                       </p>
                       <p className="text-gray-400">
                         Quantity: {item.quantity}
@@ -119,16 +115,22 @@ function Orders() {
               {/* Order Footer */}
               <div className="mt-4 text-gray-300">
                 <p>
+                  <span className="font-semibold">Total Amount:</span>{" "}
+                  ${order.totalAmount.toFixed(2)}
+                </p>
+                <p>
                   <span className="font-semibold">Address:</span>{" "}
-                  {order.address}
+                  {typeof order.shippingAddress === 'string' 
+                    ? order.shippingAddress 
+                    : JSON.stringify(order.shippingAddress)}
                 </p>
                 <p>
                   <span className="font-semibold">Payment:</span>{" "}
-                  {order.paymentMethod}
+                  {order.paymentMethod} ({order.paymentStatus})
                 </p>
                 <p>
                   <span className="font-semibold">Date:</span>{" "}
-                  {new Date(order.date).toLocaleString()}
+                  {new Date(order.createdAt).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -137,6 +139,6 @@ function Orders() {
       )}
     </div>
   );
-}
+};
 
 export default Orders;

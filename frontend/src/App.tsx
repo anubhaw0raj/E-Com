@@ -1,3 +1,4 @@
+import React from 'react';
 import { Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import ProductDetails from "./pages/ProductDetails";
@@ -17,7 +18,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 import "./App.css";
 
-function App() {
+const App: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <ScrollToTop />
@@ -73,6 +74,6 @@ function App() {
       <Footer />
     </div>
   );
-}
+};
 
 export default App;

@@ -1,30 +1,31 @@
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { productsApi } from "../models/api";
+import { Product, Category } from "../models";
 import Setup_Pc from "../assets/Img/Gaming.jpg";
 
-function Home() {
-
-  // AUTH  here only 
-  // check kro localStorage me user object hai ya nhi
-  // const [userData] = useState(window.localStorage.getItem("user"));
-  // agar nhi hai -> to login page redirect krdo
-
-  const [showInfo, setShowInfo] = useState(false);
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
+const Home: React.FC = () => {
+  const [showInfo, setShowInfo] = useState<boolean>(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const navigate = useNavigate();
 
   // Fetch all products from backend
   useEffect(() => {
-    fetch("http://localhost:5000/api/products")
-      .then((res) => res.json())
-      .then((data) => setProducts(data))
-      .catch((err) => console.error("Error fetching products:", err));
+    const fetchData = async () => {
+      try {
+        const [productsData, categoriesData] = await Promise.all([
+          productsApi.getProducts(),
+          productsApi.getCategories()
+        ]);
+        setProducts(productsData);
+        setCategories(categoriesData);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      }
+    };
 
-    fetch("http://localhost:5000/api/products/categories")
-      .then((res) => res.json())
-      .then((data) => setCategories(data))
-      .catch((err) => console.error("Error fetching categories:", err));
+    fetchData();
   }, []);
 
   return (
@@ -65,18 +66,18 @@ function Home() {
           Our Categories
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-          {categories.map((cat, i) => (
+          {categories.map((cat) => (
             <div
-              key={i}
-              onClick={() => navigate(`/products?category=${cat?.name?.toLowerCase()}`)}
+              key={cat.id}
+              onClick={() => navigate(`/products?category=${cat.name.toLowerCase()}`)}
               className="bg-gray-800 p-6 rounded-xl flex flex-col items-center hover:scale-105 transition cursor-pointer"
             >
               <img
                 src="https://via.placeholder.com/120"
-                alt={cat?.description}
+                alt={cat.description || cat.name}
                 className="rounded-lg mb-3"
               />
-              <p className="font-semibold text-gray-200">{cat?.name}</p>
+              <p className="font-semibold text-gray-200">{cat.name}</p>
             </div>
           ))}
         </div>
@@ -168,6 +169,6 @@ function Home() {
       </footer>
     </div>
   );
-}
+};
 
 export default Home;

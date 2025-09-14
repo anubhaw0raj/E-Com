@@ -1,35 +1,25 @@
-// src/pages/Register.jsx
-import { useState } from "react";
+import React, { useState, FormEvent } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { authApi } from "../models/api";
 
-function Register() {
-  const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+const Register: React.FC = () => {
+  const [email, setEmail] = useState<string>("");
+  const [username, setUsername] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [error, setError] = useState<string>("");
   const navigate = useNavigate();
 
-  const handleRegister = async (e) => {
+  const handleRegister = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, username, password }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.message || "Registration failed");
-        return;
-      }
-
+      await authApi.register({ email, username, password });
+      
       alert("User registered successfully! Please login.");
       navigate("/login");
     } catch (err) {
-      setError("Something went wrong. Try again later.");
+      setError((err as Error).message || "Something went wrong. Try again later.");
     }
   };
 
@@ -49,6 +39,7 @@ function Register() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="w-full p-3 mb-4 rounded-lg text-black"
+          required
         />
 
         <input
@@ -57,6 +48,7 @@ function Register() {
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           className="w-full p-3 mb-4 rounded-lg text-black"
+          required
         />
 
         <input
@@ -65,6 +57,7 @@ function Register() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="w-full p-3 mb-6 rounded-lg text-black"
+          required
         />
 
         <button
@@ -83,6 +76,6 @@ function Register() {
       </form>
     </div>
   );
-}
+};
 
 export default Register;

@@ -1,33 +1,41 @@
-import { useState, useEffect, use } from "react";
-import { Link,useSearchParams} from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { productsApi } from "../models/api";
+import { Product, Category } from "../models";
 
-
-function Products() {
-  // AUTH  here only 
-  // check kro localStorage me user object hai ya nhi
-  // const [userData] = useState(window.localStorage.getItem("user"));
-  // agar nhi hai -> to login page redirect krdo
-  
+const Products: React.FC = () => {
   const [searchParams] = useSearchParams();
   const category = searchParams.get("category") || "All";
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(category);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>(category);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/products/categories")
-      .then((res) => res.json())
-      .then((data) => {
-        setCategories(...data, { id: 0, name: "All", description: "All Products" });
-      })
-      .catch((err) => console.error("Error fetching categories:", err));
+    const fetchCategories = async () => {
+      try {
+        const data = await productsApi.getCategories();
+        setCategories([{ id: 0, name: "All", description: "All Products" }, ...data]);
+      } catch (err) {
+        console.error("Error fetching categories:", err);
+      }
+    };
+
+    fetchCategories();
   }, []);
 
   useEffect(() => {
-    fetch(`http://localhost:5000/api/products?category=${selectedCategory}`)
-      .then((res) => res.json())
-      .then((data) => setProducts(data))
-      .catch((err) => console.error("Error fetching products:", err));
+    const fetchProducts = async () => {
+      try {
+        const data = await productsApi.getProducts({ 
+          category: selectedCategory === "All" ? undefined : selectedCategory 
+        });
+        setProducts(data);
+      } catch (err) {
+        console.error("Error fetching products:", err);
+      }
+    };
+
+    fetchProducts();
   }, [selectedCategory]);
 
   return (
@@ -42,26 +50,26 @@ function Products() {
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
         >
-          {categories.map((cat, i) => (
-            <option key={i} value={cat?.name}>
-              {cat?.name}
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.name}>
+              {cat.name}
             </option>
           ))}
         </select>
 
         {/* Category List (desktop) */}
         <ul className="space-y-3 hidden md:block">
-          {categories.map((cat, i) => (
+          {categories.map((cat) => (
             <li
-              key={i}
+              key={cat.id}
               className={`cursor-pointer p-2 rounded-lg ${
-                selectedCategory === cat?.name
+                selectedCategory === cat.name
                   ? "bg-cyan-500 text-black font-bold"
                   : "hover:bg-gray-700"
               }`}
-              onClick={() => setSelectedCategory(cat?.name)}
+              onClick={() => setSelectedCategory(cat.name)}
             >
-              {cat?.name}
+              {cat.name}
             </li>
           ))}
         </ul>
@@ -100,6 +108,6 @@ function Products() {
       </main>
     </div>
   );
-}
+};
 
 export default Products;

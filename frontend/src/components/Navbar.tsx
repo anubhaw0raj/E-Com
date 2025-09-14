@@ -1,11 +1,12 @@
-// src/components/Navbar.jsx
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { User } from "../models";
 import Setup_Pc1 from "../assets/Img/Gaming1.jpg";
 
-function Navbar() {
+const Navbar: React.FC = () => {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user"));
+  const userString = localStorage.getItem("user");
+  const user: User | null = userString ? JSON.parse(userString) : null;
 
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -61,6 +62,6 @@ function Navbar() {
       </div>
     </nav>
   );
-}
+};
 
 export default Navbar;

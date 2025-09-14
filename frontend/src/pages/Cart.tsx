@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { cartApi } from "../models/api";
+import { CartItem, User } from "../models";
 
-function Cart() {
-  const [cartItems, setCartItems] = useState([]);
+const Cart: React.FC = () => {
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const navigate = useNavigate();
 
   // Get logged in user
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user: User | null = JSON.parse(localStorage.getItem("user") || "null");
 
   // If no user, redirect to login
   useEffect(() => {
@@ -17,39 +19,59 @@ function Cart() {
     }
 
     // Fetch cart items for this user
-    fetch(`http://localhost:5000/api/cart?userId=${user.id}`)
-      .then((res) => res.json())
-      .then((data) => setCartItems(data))
-      .catch((err) => console.error("Error fetching cart:", err));
-  }, []);
+    const fetchCart = async () => {
+      try {
+        const data = await cartApi.getCart({ userId: user.id.toString() });
+        setCartItems(data);
+      } catch (err) {
+        console.error("Error fetching cart:", err);
+      }
+    };
+
+    fetchCart();
+  }, [user, navigate]);
 
   //  Add or increase quantity
-  const handleAdd = (productId) => {
-    fetch("http://localhost:5000/api/cart", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: user.id, productId, quantity: 1 }),
-    })
-      .then((res) => res.json())
-      .then((data) => setCartItems(data));
+  const handleAdd = async (productId: number) => {
+    if (!user) return;
+    
+    try {
+      const data = await cartApi.addToCart({ 
+        userId: user.id.toString(), 
+        productId, 
+        quantity: 1 
+      });
+      setCartItems(data);
+    } catch (err) {
+      console.error("Error adding to cart:", err);
+    }
   };
 
   // Decrease quantity or remove if <= 0
-  const handleRemove = (productId, currentQty) => {
-    if (currentQty > 1) {
-      fetch(`http://localhost:5000/api/cart/${productId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id, quantity: currentQty - 1 }),
-      })
-        .then((res) => res.json())
-        .then((data) => setCartItems(data));
-    } else {
-      fetch(`http://localhost:5000/api/cart/${productId}?userId=${user.id}`, {
-        method: "DELETE",
-      })
-        .then((res) => res.json())
-        .then((data) => setCartItems(data));
+  const handleRemove = async (productId: number, currentQty: number) => {
+    if (!user) return;
+    
+    try {
+      if (currentQty > 1) {
+        // Find the cart item by productId
+        const cartItem = cartItems.find(item => item.id === productId);
+        if (cartItem) {
+          const data = await cartApi.updateCartItem(cartItem.cartItemId, {
+            userId: user.id.toString(),
+            quantity: currentQty - 1
+          });
+          setCartItems(data);
+        }
+      } else {
+        // Find the cart item by productId
+        const cartItem = cartItems.find(item => item.id === productId);
+        if (cartItem) {
+          const data = await cartApi.removeFromCart(cartItem.cartItemId, user.id.toString());
+          setCartItems(data);
+        }
+      }
+    } catch (err) {
+      console.error("Error updating cart:", err);
     }
   };
 
@@ -137,6 +159,6 @@ function Cart() {
       )}
     </div>
   );
-}
+};
 
 export default Cart;

@@ -1,18 +1,21 @@
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { productsApi, cartApi } from "../models/api";
+import { Product, User } from "../models";
 
-function ProductDetails() {
-  const { id } = useParams();
+const ProductDetails: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [product, setProduct] = useState(null);
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // Fetch product details from backend
   useEffect(() => {
     const fetchProduct = async () => {
+      if (!id) return;
+      
       try {
-        const res = await fetch(`http://localhost:5000/api/products/${id}`);
-        const data = await res.json();
+        const data = await productsApi.getProductById(parseInt(id));
         setProduct(data);
         setSelectedImage(data.images[0]); // default first image
       } catch (err) {
@@ -28,7 +31,8 @@ function ProductDetails() {
 
   // Add product to cart (with login check & userId)
   const handleAddToCart = async () => {
-    const user = JSON.parse(localStorage.getItem("user"));
+    const userString = localStorage.getItem("user");
+    const user: User | null = userString ? JSON.parse(userString) : null;
 
     if (!user) {
       alert("Login required to add items to cart");
@@ -37,19 +41,12 @@ function ProductDetails() {
     }
 
     try {
-      const res = await fetch("http://localhost:5000/api/cart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user.id,       // send userId
-          productId: product.id, // send productId
-          quantity: 1,
-        }),
+      await cartApi.addToCart({
+        userId: user.id.toString(),
+        productId: product.id,
+        quantity: 1,
       });
 
-      if (!res.ok) throw new Error("Failed to add to cart");
-
-      await res.json();
       alert("✅ Product added to cart!");
     } catch (err) {
       console.error("Error adding to cart:", err);
@@ -62,7 +59,7 @@ function ProductDetails() {
       {/* Left Side - Images */}
       <div className="flex flex-col items-center">
         <img
-          src={selectedImage}
+          src={selectedImage || product.images[0]}
           alt="Product"
           className="w-full h-[400px] object-contain rounded-lg mb-4"
         />
@@ -127,6 +124,6 @@ function ProductDetails() {
       </div>
     </div>
   );
-}
+};
 
 export default ProductDetails;

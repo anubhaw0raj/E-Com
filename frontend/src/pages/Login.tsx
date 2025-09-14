@@ -1,37 +1,27 @@
-// src/pages/Login.jsx
-import { useState } from "react";
+import React, { useState, FormEvent } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { authApi } from "../models/api";
 
-function Login() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+const Login: React.FC = () => {
+  const [username, setUsername] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [error, setError] = useState<string>("");
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.message || "Login failed");
-        return;
-      }
-
+      const response = await authApi.login({ username, password });
+      
       // Save user to localStorage
-      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("user", JSON.stringify(response.user));
 
       alert("Login successful!");
       navigate("/");
     } catch (err) {
-      setError("Something went wrong. Try again later.");
+      setError((err as Error).message || "Something went wrong. Try again later.");
     }
   };
 
@@ -51,6 +41,7 @@ function Login() {
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           className="w-full p-3 mb-4 rounded-lg text-black"
+          required
         />
 
         <input
@@ -59,6 +50,7 @@ function Login() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="w-full p-3 mb-6 rounded-lg text-black"
+          required
         />
 
         <button
@@ -77,6 +69,6 @@ function Login() {
       </form>
     </div>
   );
-}
+};
 
 export default Login;
