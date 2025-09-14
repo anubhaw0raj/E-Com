@@ -82,6 +82,7 @@ const ProductDetails: React.FC = () => {
       <div className="flex flex-col justify-centre">
         <div>
           <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
+          <p className="text-gray-300 mb-2">Category: <span className="text-cyan-400">{product.category}</span></p>
           <p className="text-yellow-400 mb-4">⭐ {product.rating} / 5</p>
 
           {/* Specs */}

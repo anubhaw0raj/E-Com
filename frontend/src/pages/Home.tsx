@@ -69,7 +69,7 @@ const Home: React.FC = () => {
           {categories.map((cat) => (
             <div
               key={cat.id}
-              onClick={() => navigate(`/products?category=${cat.name.toLowerCase()}`)}
+              onClick={() => navigate(`/products?category=${cat.name}`)}
               className="bg-gray-800 p-6 rounded-xl flex flex-col items-center hover:scale-105 transition cursor-pointer"
             >
               <img

@@ -4,11 +4,18 @@ import { productsApi } from "../models/api";
 import { Product, Category } from "../models";
 
 const Products: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const category = searchParams.get("category") || "All";
+  const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>(category);
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+
+  // Initialize selectedCategory from URL params
+  useEffect(() => {
+    const categoryParam = searchParams.get("category");
+    if (categoryParam) {
+      setSelectedCategory(categoryParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -38,6 +45,16 @@ const Products: React.FC = () => {
     fetchProducts();
   }, [selectedCategory]);
 
+  // Handle category change and update URL
+  const handleCategoryChange = (categoryName: string) => {
+    setSelectedCategory(categoryName);
+    if (categoryName === "All") {
+      setSearchParams({});
+    } else {
+      setSearchParams({ category: categoryName });
+    }
+  };
+
   return (
     <div className="bg-gray-900 text-white min-h-screen grid grid-cols-[20%_80%]">
       {/* Sidebar */}
@@ -48,7 +65,7 @@ const Products: React.FC = () => {
         <select
           className="w-full p-2 rounded-lg bg-gray-700 text-white mb-6 md:hidden"
           value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
+          onChange={(e) => handleCategoryChange(e.target.value)}
         >
           {categories.map((cat) => (
             <option key={cat.id} value={cat.name}>
@@ -67,7 +84,7 @@ const Products: React.FC = () => {
                   ? "bg-cyan-500 text-black font-bold"
                   : "hover:bg-gray-700"
               }`}
-              onClick={() => setSelectedCategory(cat.name)}
+              onClick={() => handleCategoryChange(cat.name)}
             >
               {cat.name}
             </li>
@@ -99,7 +116,7 @@ const Products: React.FC = () => {
                   className="w-full h-40 object-cover rounded-lg mb-4"
                 />
                 <h3 className="font-semibold">{product.name}</h3>
-                <p className="text-gray-400 capitalize">{product.category}</p>
+                <p className="text-gray-400">{product.category}</p>
                 <p className="text-cyan-400 font-bold">${product.price}</p>
               </Link>
             ))}
