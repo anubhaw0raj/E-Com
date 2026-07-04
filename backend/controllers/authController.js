@@ -1,94 +1,125 @@
-// In-memory user storage for now
-// library -> bcryptjs
-
-// Register new user (POST /api/auth/register) -> username, email, password frontend se
-// check if user exists -> return error -> login page 
-// { userId, userName, email, hashed_password }
-// iska jo function bnega usme jo password aayega usko tmkio hash krna hoga
-// api response -> jo naya user banega {id, userName, email} -> if you want to directly go to home
-// api response -> success message -> login page redirect krdo
-
-
-// Login user (POST /api/auth/login) -> username, password
-// check if user exists -> if no0 > return error and ask user to register
-// password received -> usko hash kro aur compare kro already wala 
-// match kr gya  -> api response -> {id, userName, email} 
-// nhi match kiya to error message bhejo -> login failed
-
-// [NOT NECESSARY] - Logout user (POST /api/auth/logout) -> username
-// backend api banane ka jroorat nhi hai
-// logout frontend me jo button hoga wo bs localStorage se user object hata 
-
-
-// controllers/authController.js
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const db = require("../db");
 
-let users = []; // in-memory users list
-let userIdCounter = 1;
+const signToken = (user) =>
+  jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+  });
 
-// Register new user
+const publicUser = (u) => ({
+  id: u.id,
+  username: u.username,
+  email: u.email,
+  fullName: u.full_name,
+  role: u.role,
+  createdAt: u.created_at,
+});
+
+// POST /api/auth/register
 const register = async (req, res) => {
-  const { email, username, password } = req.body;
+  const { email, username, password, fullName } = req.body;
 
   if (!email || !username || !password) {
+    return res.status(400).json({ message: "Email, username and password are required" });
+  }
+  if (!/^\S+@\S+\.\S+$/.test(email)) {
+    return res.status(400).json({ message: "Invalid email address" });
+  }
+  if (username.length < 3) {
+    return res.status(400).json({ message: "Username must be at least 3 characters" });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ message: "Password must be at least 6 characters" });
+  }
+
+  try {
+    const exists = await db.query(
+      "SELECT email, username FROM users WHERE email = $1 OR username = $2",
+      [email, username]
+    );
+    if (exists.rowCount > 0) {
+      const row = exists.rows[0];
+      const message = row.email === email ? "Email already registered" : "Username already taken";
+      return res.status(409).json({ message });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const insert = await db.query(
+      `INSERT INTO users (email, username, password_hash, full_name)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, email, username, full_name, role, created_at`,
+      [email, username, passwordHash, fullName || null]
+    );
+
+    const user = insert.rows[0];
+    return res.status(201).json({
+      message: "User registered successfully",
+      token: signToken(user),
+      user: publicUser(user),
+    });
+  } catch (err) {
+    if (err.code === "23505") {
+      return res.status(409).json({ message: "Email or username already exists" });
+    }
+    console.error("Register error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// POST /api/auth/login — accepts username OR email as identifier
+const login = async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
-  // Check if email already exists
-  const existingEmail = users.find((u) => u.email === email);
-  if (existingEmail) {
-    return res.status(400).json({ message: "Email already registered" });
+  try {
+    const result = await db.query(
+      `SELECT id, email, username, full_name, role, password_hash, created_at
+       FROM users WHERE username = $1 OR email = $1`,
+      [username]
+    );
+    if (result.rowCount === 0) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const user = result.rows[0];
+    const isMatch = await bcrypt.compare(password, user.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    return res.json({
+      message: "Login successful",
+      token: signToken(user),
+      user: publicUser(user),
+    });
+  } catch (err) {
+    console.error("Login error:", err);
+    return res.status(500).json({ message: "Server error" });
   }
-
-  // Check if username already exists
-  const existingUsername = users.find((u) => u.username === username);
-  if (existingUsername) {
-    return res.status(400).json({ message: "Username already taken" });
-  }
-
-  // Hash password
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  const newUser = {
-    id: userIdCounter++,
-    email,
-    username,
-    password: hashedPassword,
-  };
-
-  users.push(newUser);
-
-  return res.status(201).json({ message: "User registered successfully" });
 };
 
-// Login user (by username + password)
-const login = async (req, res) => {
-  const { username, password } = req.body;
-
-  const user = users.find((u) => u.username === username);
-  if (!user) {
-    return res.status(400).json({ message: "Invalid credentials" });
+// GET /api/auth/me — current user profile with order/cart stats
+const me = async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT u.id, u.email, u.username, u.full_name, u.role, u.created_at,
+              (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id)::int AS order_count,
+              (SELECT COALESCE(SUM(ci.quantity), 0) FROM cart_items ci WHERE ci.user_id = u.id)::int AS cart_count
+       FROM users u WHERE u.id = $1`,
+      [req.user.id]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const u = result.rows[0];
+    return res.json({ ...publicUser(u), orderCount: u.order_count, cartCount: u.cart_count });
+  } catch (err) {
+    console.error("Me error:", err);
+    return res.status(500).json({ message: "Server error" });
   }
-
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) {
-    return res.status(400).json({ message: "Invalid credentials" });
-  }
-
-  // return user info (id, username, email)
-  return res.json({
-    message: "Login successful",
-    user: { id: user.id, email: user.email, username: user.username },
-  });
 };
 
-// Logout user (frontend will handle clearing localStorage)
-const logout = (req, res) => {
-  return res.json({ message: "Logout successful" });
-};
-
-const getAllUsers = (req, res) => {
-  res.json(users);
-};
-
-module.exports = { register, login, logout, getAllUsers };
+module.exports = { register, login, me };

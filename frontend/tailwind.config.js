@@ -1,15 +1,13 @@
 /** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: [
-    "./src/**/*.{js,jsx,ts,tsx}",
-  ],
+export default {
+  content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
-        fontFamily: {
-        orbitron: ["Orbitron", "sans-serif","Audiowide"],
+      fontFamily: {
+        orbitron: ["Orbitron", "sans-serif"],
+        Audiowide: ["Audiowide", "Orbitron", "sans-serif"],
       },
     },
   },
   plugins: [],
-}
-
+};
